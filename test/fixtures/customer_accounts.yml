@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  customer: one
+  product_price: one
+  created_at: 2024-04-15 23:38:35
+
+two:
+  customer: two
+  product_price: two
+  created_at: 2024-04-15 23:38:35
