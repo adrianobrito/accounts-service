@@ -9,12 +9,25 @@ class ProductsController < ApplicationController
   
     # GET /products/:id
     def show
-      render json: @product
+      render json: @product.as_json(
+        methods: :last_product_price_value,  # Updated to use the correct method
+        except: [:last_product_price_id]
+      )
     end
   
     # POST /products
     def create
-      @product = Product.new(product_params)
+      # First, initialize the product with the permitted params except for price
+      @product = Product.new(product_params.except(:product_price))
+      
+      # Handle the product price
+      if params[:product_price].present?
+        new_product_price = ProductPrice.create(product_price: params[:product_price])
+        @product.last_product_price_id = new_product_price.id
+      end
+  
+      puts @product
+      # Save the product
       if @product.save
         render json: @product, status: :created, location: @product
       else
@@ -22,8 +35,16 @@ class ProductsController < ApplicationController
       end
     end
   
-    # PATCH/PUT /products/:id
     def update
+      # Check if a new price is provided and is different from the current product price
+      new_price = params[:product_price].to_d if params[:product_price]
+      if new_price && (@product.last_product_price.nil? || new_price != @product.last_product_price.product_price)
+        # Create a new ProductPrice if different
+        new_product_price = ProductPrice.create(product_price: new_price)
+        @product.last_product_price = new_product_price
+      end
+      
+      # Update other product attributes as usual
       if @product.update(product_params)
         render json: @product
       else
@@ -45,7 +66,7 @@ class ProductsController < ApplicationController
   
       # Only allow a list of trusted parameters through.
       def product_params
-        params.require(:product).permit(:name, :last_product_price)
+        params.require(:product).permit(:name, :product_price)
       end
   end
   
