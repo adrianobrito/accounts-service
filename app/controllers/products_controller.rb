@@ -34,23 +34,25 @@ class ProductsController < ApplicationController
         render json: @product.errors, status: :unprocessable_entity
       end
     end
-  
+
     def update
-      # Check if a new price is provided and is different from the current product price
       new_price = params[:product_price].to_d if params[:product_price]
       if new_price && (@product.last_product_price.nil? || new_price != @product.last_product_price.product_price)
-        # Create a new ProductPrice if different
-        new_product_price = ProductPrice.create(product_price: new_price)
-        @product.last_product_price = new_product_price
-      end
-      
-      # Update other product attributes as usual
-      if @product.update(product_params)
+        Product.transaction do
+          new_product_price = ProductPrice.create!(product_price: new_price, product_id: @product.id)
+          @product.last_product_price = new_product_price
+          @product.update!(product_params)
+        end
         render json: @product
       else
-        render json: @product.errors, status: :unprocessable_entity
+        if @product.update(product_params)
+          render json: @product
+        else
+          render json: @product.errors, status: :unprocessable_entity
+        end
       end
     end
+
   
     # DELETE /products/:id
     def destroy
